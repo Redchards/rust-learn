@@ -71,7 +71,7 @@ fn main() {
     }
 
     // After shorthand
-    if let Some(3) => {
+    if let Some(3) = some_value {
         println!("Yay!")
     }
 
@@ -84,13 +84,18 @@ fn main() {
         _ => count += 1
     }
 
+    println!("Count {}", count);
+
     // After shorthand
+    let mut count = 0;
     if let Coin::Quarter = coin {
         println!("A quarter");
     }
     else {
         count += 1;
     }
+
+    println!("Count {}", count);
 
     // In this case it isn't shorter per se, but it definitely is more readable
     // It clearly shouldn't be used for exhaustive matching, as we completely lose 
