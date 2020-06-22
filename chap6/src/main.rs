@@ -44,6 +44,57 @@ fn main() {
     println!("The value of a nickel is {}", Coin::Nickel.value_in_cents());
     println!("The value of a dime is {}", Coin::Dime.value_in_cents());
     println!("The value of a Quarter is {}", Coin::Quarter.value_in_cents());
+
+    // The Option type is awesome!!!!
+    let x = 5;
+    let x1 = plus_one(Some(x));
+    let x2 = plus_one(None);
+    
+    println!("x1 is {:?}, and x2 is {:?}", x1, x2);
+
+    // Let's look at the match placeholder now
+
+    let some_value = 5;
+    match some_value {
+        1 => println!("one"),
+        3 => println!("three"),
+        5 => println!("five"),
+        _ => println!("Unknown!!")
+    }
+
+    // If/Let shorthand for non-exhaustive matches
+    // Before shorthand 
+    let some_value = Some(5);
+    match some_value {
+        Some(3) => println!("Yay!"),
+        _ => println!("Ohnoes...")
+    }
+
+    // After shorthand
+    if let Some(3) => {
+        println!("Yay!")
+    }
+
+    // Another example
+    // Before shorthand
+    let mut count = 0;
+    let coin = Coin::Quarter;
+    match coin {
+        Coin::Quarter => println!("A quarter"),
+        _ => count += 1
+    }
+
+    // After shorthand
+    if let Coin::Quarter = coin {
+        println!("A quarter");
+    }
+    else {
+        count += 1;
+    }
+
+    // In this case it isn't shorter per se, but it definitely is more readable
+    // It clearly shouldn't be used for exhaustive matching, as we completely lose 
+    // the ability to handle more than these cases
 }
 
 #[derive(Debug)]
@@ -87,3 +138,10 @@ impl Coin {
         }
     }
 } 
+
+fn plus_one(num: Option<i32>) -> Option<i32> {
+    match num {
+        Some(i) => Some(i + 1),
+        None => None
+    }
+}
