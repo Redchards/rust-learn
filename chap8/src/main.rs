@@ -77,6 +77,16 @@ fn main() {
         Some(elem) => println!("The 100th element of the vector is {}", elem),
         None       => println!("There is not 100th element")
     }
+
+    // It is also worth mentioning that if you're taking a reference to a particular element in the collection,
+    // then it will be invalidated by a mutable operation on the aforementioned collection
+
+    let mut v: Vec<i32> = vec![1, 2, 3, 4, 5];
+    let first = &v[0];
+    println!("Just casually printing the first element before it is invalidated : {}", first);
+    v.push(0);
+    // And now the following is not gonna work because 'first' has been invalidated
+    // println!("Not so casually printing the first element after it is invalidated : {}", first);
 }
 
 fn print_nth_element_if_exists(v: &Vec<i32>, n: usize) {
@@ -89,10 +99,16 @@ fn print_nth_element_if_exists(v: &Vec<i32>, n: usize) {
 }
 
 fn get_ordinal_suffix(n: usize) -> &'static str {
-    return match n % 10 {
-        1 => "st",
-        2 => "nd",
-        3 => "rd",
-        _ => "th"
+    if let 0..=9 = n / 10 {
+        "th"
+    }
+    else
+    {
+        _ => match n % 10 {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th"
+        }
     }
 }
