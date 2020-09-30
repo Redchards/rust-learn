@@ -104,7 +104,7 @@ fn get_ordinal_suffix(n: usize) -> &'static str {
     }
     else
     {
-        _ => match n % 10 {
+        match n % 10 {
             1 => "st",
             2 => "nd",
             3 => "rd",
