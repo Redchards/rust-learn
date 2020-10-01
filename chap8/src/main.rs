@@ -86,7 +86,142 @@ fn main() {
     println!("Just casually printing the first element before it is invalidated : {}", first);
     v.push(0);
     // And now the following is not gonna work because 'first' has been invalidated
+    // It is very similar to iterator invalidation in C++, but here the compiler will prevent us from using an invalid "iterator", or in this
+    // case reference to an element. Schwwwwwwweeeet
     // println!("Not so casually printing the first element after it is invalidated : {}", first);
+    
+    // Now let's try it with actual iterators right
+    // let mut v: Vec<i32> = vec![1, 2, 3, 4, 5];
+
+    let v: Vec<i32> = vec![1, 2, 3, 4, 5];
+    let mut it = v.iter();
+
+    // Here .unwrap can of course panic, but we know what we're doing in this example ;)
+    println!("Hello, printing value from an iterator : {}", it.next().unwrap());
+    println!("Vector is : {:?}", v);
+
+    // Now what happens if we push another element?
+    // Well, the answer is that we can't, because we have to be able to mutably borrow v, when we borrowed an immutable reference to it with v.iter()
+    // So we can't push anything to the vector while an iterator is in scope
+    // v.push(0);
+
+    // Now let's iterate over a vector's value
+    let mut v: Vec<i32> = vec![100, 32, 57];
+    for x in &v {
+        println!("Printing one element : {}", x);
+    }
+
+    // Let's modify the vector by adding 50 to every element
+    for x in &mut v {
+        *x += 50;
+    }
+
+    // Now let's print it using enumerate
+    // Very sweet
+    for (i, x) in v.iter().enumerate() {
+        let ordinal_suffix: &'static str = get_ordinal_suffix(i + 1);
+        println!("The {}{} element of the vector is {}", i + 1, ordinal_suffix, x)
+    }
+
+    // Now let's see heterogeneous collections using... enums! That's right, enums are simply tagged unions! Suss!
+    let row: Vec<SpreadsheetCell> = vec![
+        SpreadsheetCell::Int(3),
+        SpreadsheetCell::Text(String::from("blue")),
+        SpreadsheetCell::Float(10.12),
+    ];
+
+    // And let's print this row... how would we do that ?
+    println!("Printing a nice heterogeneous collection... as an spreadsheet row!");
+
+    for cell in row {
+        print!("| ");
+        cell.print_value();
+        print!(" ");
+    }
+    println!("|");
+    
+    // Next we will play with character strings a little, namely the types String and str
+    // String is the owned type and str is the borrowed type, only str is a natvie built-in type.
+
+    let init_str = "Hello World!";
+    let s = init_str.to_string();
+    println!("Newly created string : {}", s);
+
+    // Also works directly on string literals of course
+    let s = "Hello World!".to_string();
+    println!("Newly created string : {}", s);
+
+    // Another way is to use the "from" static method from the class String
+    let s = String::from("Hello World!");
+    println!("Newly created string : {}", s);
+
+    // Important note : strings are utf-8 encoded, so we can display any character in utf-8
+    let frog_str = "Enchanté, nous sommes des grenouilles !";
+    println!("{}", frog_str);
+
+    // We can of course grow a string using the .push_str or the .push methods for instance
+    let mut s = String::from("Hello ");
+    s.push_str("World");
+    s.push('!');
+    println!("{}", s);
+    
+    // An example of string concatenation
+    let s1 = String::from("Hello ");
+    let s2 = String::from("World!");
+    let s3 = s1 + &s2;
+    println!("{}", s3);
+
+    // Note that the lhs will be moved (stolen reference) and can of course no longer be used afterwards
+    // The following won't compile:
+    // println!("{}", s1);
+
+    // We can also chain concatenations like in any otehr language
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    let s = s1 + "-" + &s2 + "-" + &s3;
+    println!("{}", s);
+    
+    // Here again, only s1 is moved
+    // A better method would be to use the format! macro though
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    let s = format!("{}-{}-{}", s1, s2, s3);
+    println!("{}", s);
+    // Note that it doesn't take ownership of any of the parameters as it builds an entirely new string and doesn't reuse the memory
+    // of any of the parameters, so no move occurs
+
+    // There's a drawback to everything being encoded in utf-8 though (or is it? Not at all imo), and it's that we can't index strings
+    // For instance, the following would not compile:
+    // let s = String::from("hello");
+    // let h = s[0];
+    // That being said, we can access slices of strings
+    let hello = "Здравствуйте";
+    let s = &hello[0..4];
+    println!("{}", s);
+
+    // Here every letter is represented by two bytes, what would happen if we were to slice "in between", like with &str[1..3]
+    // Well, the following code will panic with "not a char boundary"
+    // let s = &hello[1..3];
+    // println!("{}", s);
+
+    // To iterate over a string we can either use the method .char or the method bytes, which are pretty self explanatory
+    println!("Printing chars:");
+    for c in hello.chars() {
+        println!("{}", c);
+    }
+
+
+    println!("Printing bytes:");
+    for b in hello.bytes() {
+        println!("{}", b);
+    }
+
+    // So strings are pretty complicated in Rust, but this complexity is inherent to the object and in return we get correct utf-8 string
+    // handling by default!
 }
 
 fn print_nth_element_if_exists(v: &Vec<i32>, n: usize) {
@@ -109,6 +244,23 @@ fn get_ordinal_suffix(n: usize) -> &'static str {
             2 => "nd",
             3 => "rd",
             _ => "th"
+        }
+    }
+}
+
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String)
+}
+
+impl SpreadsheetCell {
+    fn print_value(self) {
+        match self
+        {
+            SpreadsheetCell::Int(x) => print!("{}", x),
+            SpreadsheetCell::Float(x) => print!("{}", x),
+            SpreadsheetCell::Text(x) => print!("{}", x),
         }
     }
 }
