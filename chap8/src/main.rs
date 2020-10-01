@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn main() {
     // We're gonna use quite a little bit of shadowing to demonstrate how to use different collections
     // Remember that doing 'let v' multiple times will simpl "shadow" the previous declaration
@@ -222,6 +224,80 @@ fn main() {
 
     // So strings are pretty complicated in Rust, but this complexity is inherent to the object and in return we get correct utf-8 string
     // handling by default!
+
+    // Now let's have som hashmap silly fun
+    // Notice the "use" at the beginning of the file: it brings the HashMap collection in our module
+    let mut scores = HashMap::new();
+
+    scores.insert(String::from("Billy"), 10);
+    scores.insert(String::from("Jimmy"), 16);
+    
+    // Another way of filling them up is to use the "collect" method
+    let players: Vec<String> = vec![String::from("Billy"), String::from("Jimmy")];
+    let final_scores: Vec<i32> = vec![10, 16];
+    let mut scores: HashMap<_, _> = players.into_iter().zip(final_scores.into_iter()).collect();
+    println!("{:?}", scores);
+
+    // The HashMaps are owner of the types that don't implement the Copy trait, like Strings for example
+    let field_name = String::from("Favorite color");
+    let field_value = String::from("Blue");
+    
+    let mut map: HashMap<String, String> = HashMap::new();
+    map.insert(field_name, field_value);
+    // You can't use these values anymore, the code below would not compile:
+    // println!("{}:{}", field_name, field_value);
+
+    // Retrieving a value from a HashMap is of course rather straightforward and indeed we have the luxury of Options, that's amazing!
+    let billy_score = scores.get("Billy");
+
+    if let Some(x) = billy_score {
+        println!("Billy's score is {}", x);
+    }
+    else {
+        println!("There's no such player!");
+    }
+
+    // We can also iterate over HashMaps
+    for x in &scores {
+        print_score(x);
+    }
+
+    // The .insert method allows us to update values
+    scores.insert(String::from("Billy"), 25);
+
+    for x in &scores {
+        print_score(x);
+    }
+
+    // We can also insert only if there's not entry in the table with a given key
+    scores.entry(String::from("Tommy")).or_insert(50);
+    scores.entry(String::from("Billy")).or_insert(50);
+
+    // As we can see, Billy's score remains the same
+    for x in &scores {
+        print_score(x);
+    }
+    
+    // Note that the .or_insert method returns a mutable reference to the entry, which means that we can mutate it
+    // Let's count word occurrences for instance
+
+    let text = "hello world wonderful world hello hello and hello";
+    let mut occ_map = HashMap::new();
+
+    for word in text.split_whitespace() {
+        let e = occ_map.entry(word).or_insert(0);
+        *e += 1;
+    }
+
+    println!("{:?}", occ_map);
+
+    let v: Vec<i32> = vec![1, 2, 3, 4, 5];
+    println!("Mean of {:?} = {}", v, vec_mean(&v));
+    println!("Median of {:?} = {}", v, vec_med(&v));
+    println!("Median of {:?} = {}", v, vec_mode(&v));
+
+    let s = "Hello I am gonna be converted to pig latin";
+    println!("{}", pig_latin(s));
 }
 
 fn print_nth_element_if_exists(v: &Vec<i32>, n: usize) {
@@ -263,4 +339,64 @@ impl SpreadsheetCell {
             SpreadsheetCell::Text(x) => print!("{}", x),
         }
     }
+}
+
+fn print_score((player, score): (&String, &i32)) {
+    println!("{}'s score is {}", player, score);
+}
+
+// Stupid simple functions that the rust book asks you to write at the end of the chapter
+// They're purposefully not using anything already present in the standard library
+
+fn vec_mean(v: &Vec<i32>) -> f64 {
+    let mut sum: i32 = 0;
+
+    for x in v {
+        sum += x;
+    }
+
+    let sum = sum as f64;
+
+    return sum / (v.len() as f64);
+}
+
+fn vec_med(v: &Vec<i32>) -> i32 {
+    let mut v_clone = v.clone();
+    v_clone.sort();
+
+    return v_clone[v_clone.len() / 2];
+}
+
+fn vec_mode(v: &Vec<i32>) -> i32 {
+    let mut mode_map: HashMap<i32, i32> = HashMap::new();
+
+    for x in v {
+        let e = mode_map.entry(*x).or_insert(0);
+        *e += 1;
+    }
+
+    let mut best = 0;
+    for (x, num_occ) in mode_map {
+        if num_occ > best {
+            best = x;
+        }
+    }
+
+    return best;
+}
+
+// Ok, for this one I just couldn't resist using iterators... So tempting
+fn pig_latin(s: &str) -> String {
+    let mut result = String::new();
+
+    for substr in s.split_whitespace() {
+        let mut tmp: String = substr.chars().into_iter().skip(1).collect();
+        tmp.push('-');
+        tmp.push(substr.chars().next().unwrap());
+        tmp.push_str("ay");
+
+        result.push_str((tmp + " ").as_str());
+    }
+
+    return result;
 }
