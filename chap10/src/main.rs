@@ -152,6 +152,92 @@ fn main() {
     // Now let's move onto Lifetimes
     // This time, instead of wanting to know if a type has the correct behavior, we want to determine the lifetime of a particular resource, which
     // is the scope in which a reference to it is valid
+    // We've already seen the following example
+
+    // let r;
+    // 
+    // {
+    //    let x = 5;
+    //    r = &x;
+    //}
+    // println!("r: {}", r);
+
+    // Here r lives longer than x (the borrowed value) because it's declared in the outer scope, Rust uses a borrow checker to determine that this code
+    // is indeed invalide
+    // Notice that we have not initialized r, it doesn't mean that r is null, it actually can't be used before being initialized
+
+    // The borrow checker can actually be understood using "lifetime annotations"
+    // {
+    //     let r;                // ---------+-- 'a
+    //                           //          |
+    //     {                     //          |
+    //         let x = 5;        // -+-- 'b  |
+    //         r = &x;           //  |       |
+    //     }                     // -+       |
+    //                           //          |
+    //     println!("r: {}", r); //          |
+    // }                         // ---------+
+
+    // The lifetime of r has been annotate with 'a and the lifetime of x with 'b, the inner 'b block is much smaller than the outer 'a lifetime bloock
+    // At compile time, we will compare the two lifetimes and see that r has a lifetime denoted by 'a and refers to x that has a lifetime denoted by 'b
+    // As 'b is shorter than 'a, the program is simply rejected, the referenced borrowed variable doesn't live long enough
+
+    // The following is fine though
+
+    {
+        let x = 5;            // ----------+-- 'b
+                              //           |
+        let r = &x;           // --+-- 'a  |
+                              //   |       |
+        println!("r: {}", r); //   |       |
+                              // --+       |
+    }                         // ----------+
+
+    // By applying the same logic, it is easy to see that this code is correct, at least as long as the lifetime consistency goes
+    // Sometimes it is imperative to annotate our lifetimes to make sure that we're not doing anything wrong
+
+    // We can also define generic lifetime annotations ourselves, see the "longest" function
+
+    println!("Longest = {}", longest("ZA", "WARUDO"));
+    
+    let za = String::from("ZA");
+    let warudo = String::from("WARUDO");
+    println!("Longest = {}", longest(&za, &warudo));
+    
+    // Still ok, both arguments live as long as the generic lifetime
+    let za = String::from("ZA");
+    {
+        let warudo = String::from("WARUDO");
+        println!("Longest = {}", longest(&za, &warudo));
+    }
+
+    // The code below wouldn't work though
+    // let za = String::from("ZA");
+    // let result;
+    // {
+    //     let warudo = String::from("WARUDO");
+    //     result = longest(&za, &warudo);
+    // }
+    // println!("Longest = {}", result);
+    
+    // We can get structs to hold references, but one more, we need to annotate the lifetime of every reference that the structure holds
+    let fairy_tale = String::from("Once upon a time, there was a young boy");
+    let first_sentence = fairy_tale.split(',').next().expect("Couldn't find a split!");
+    let excerpt = ImportantExcerpt {
+        part: first_sentence,
+    };
+
+    excerpt.print();
+
+    println!("{}", first_word(&fairy_tale));
+
+    // Lifetime annotations on function or method parameters are called input lifetimes and lifetimes on return values are output lifetimes
+    // There are three rules for lifetime elision : 
+    // - At first all parameters are automatically annotated with their respective lifetimes
+    // - If there's exactly one input lifetime, the output lifetimes will be the same
+    // - If it's a class method (with input &self or &mut self), the outputs will be assigned the lifetime of self
+
+    longest_with_announcement(&za, &warudo, "That's all folks");
 }       
 
 // VERBOTTEN!!!
@@ -447,3 +533,72 @@ impl<T: PartialOrd + Display> Pair<T> {
 // .to_string method
 // let s = 3.to_string();
 // We call it a blanket implementation, they appear in the documentation for the trait in the "Implementors" section
+
+// Here we have a function for which the lifetimes of the parameters aren't clear
+// fn longest(x: &str, y: &str) -> &str {
+//     if x.len() > y.len() {
+//         x
+//     }
+//     else {
+//         y
+//     }
+// }
+
+// The function won't compile because the lifetime of the returned value is not clear at compile time : we will only know 
+// at runtime whether we are returning x or y
+// We can use a generic lifetime annotation to indicate that both parameters will are referencing resources that live for
+// as long as the generic lifetime
+// Generic lifetime annotations start with an apostrophe and the name tends to be very short
+// Using the 'a annotation below, we ensure that the borrow checker will verify that both arguments live for as long as the 
+// generic lifetime
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    }
+    else {
+        y
+    }
+}
+
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn print(&self) {
+        println!("A particularly important excerpt {}", self.part);
+    }
+}
+
+// The following function is an example of lifetime elision, some common lifetime patterns have been programmed into the Rust
+// compiler so that it can infer the lifetime of parameters and return types in these cases
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[..i];
+        }
+    }
+
+    &s[..]
+}
+
+// A combination of what we've seen in this (huge) chapter
+fn longest_with_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    announcement: T
+) -> &'a str
+where 
+    T: Display,
+{
+    println!("Oye oye, {}", announcement);
+
+    if x.len() > y.len() {
+        x
+    } 
+    else {
+        y
+    }
+}
