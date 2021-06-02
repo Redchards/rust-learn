@@ -602,3 +602,11 @@ where
         y
     }
 }
+
+// Lifetime elision happens following three basic rules :
+// 1 -> each parameter that is a reference gets its own lifetime parameter, for instance, fn foo(x: &str, y: &str) would turn into
+// fn foo<'a, 'b>(x: &'a str, y: &'b str) 
+// 2 -> if there's one input lifetime parameter, it is assigned to all output lifetime parameters. For instance, fn foo<'a>(x: &'a str) -> &str
+// is deduced as being fn foo<'a>(x: &'a str) -> &'a str
+// 3 -> if there are multiple input lifetime parameters, but that one of them is &self or &mut self, the lifetime of self is assiged to all
+// output lifetime parameters
