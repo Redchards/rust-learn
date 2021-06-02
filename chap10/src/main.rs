@@ -24,7 +24,7 @@ fn main() {
     // function overloading away from me without a good justification!
     // A very compelling reason and maybe the only really compelling one that I found was that function overloading makes it
     // more difficult to know the real behavior of a function. Though it is not function overloading, we all remember the infamous
-    // ballad of the std::vector<bool> specialization which acts exactly like a bitset and not a vector of boolean, making its
+    // ballad of the std::vector<bool> specialization which acts exactly like a bitset and not a vector of booleans, making its
     // behavior different. A very simple example could be something like this (though it would be more readily implemented as a 
     // method:
     // void plus_one(int& x) { x += 1; }
@@ -159,7 +159,7 @@ fn main() {
     // {
     //    let x = 5;
     //    r = &x;
-    //}
+    // }
     // println!("r: {}", r);
 
     // Here r lives longer than x (the borrowed value) because it's declared in the outer scope, Rust uses a borrow checker to determine that this code
