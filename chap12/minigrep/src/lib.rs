@@ -13,13 +13,19 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
-        if args.len() < 3 {
-            return Err("Not enough parameters");
-        }
-        
-        let query = args[1].clone();
-        let filename = args[2].clone();
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        args.next(); 
+
+        let query = match args.next() {
+            Some(query) => query,
+            None => return Err("No query defined"),
+        };
+
+        let filename = match args.next () {
+            Some(file) => file,
+            None => return Err("No file defined"),
+        };
+
         let case_sensitive = get_case_sensitive();
 
         Ok(Config { 
@@ -49,28 +55,19 @@ fn get_case_sensitive() -> CaseSensitive {
 
 pub fn search_line_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    let mut res = Vec::new();
 
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            res.push(line);
-        }
-    }
-
-    res
-
+    search_line_core(contents, |l| l.to_lowercase().contains(&query))
 }
 
 pub fn search_line_case_sensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut res = Vec::new();
+    search_line_core(contents, |l| l.contains(&query))
+}
 
-    for line in contents.lines() {
-        if line.contains(query) {
-            res.push(line);
-        }
-    }
-
-    res
+fn search_line_core<'a, F: Fn(&&str) -> bool>(contents: &'a str, filter_fc: F) -> Vec<&'a str> {
+    contents
+        .lines()
+        .filter(filter_fc)
+        .collect()
 }
 
 pub fn search_line<'a>(query: &str, contents: &'a str, case_sensitive: CaseSensitive) -> Vec<&'a str> {
