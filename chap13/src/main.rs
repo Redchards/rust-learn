@@ -80,6 +80,9 @@ fn main() {
     let s1: HashSet<_> = adapted_iter.collect();
 
     println!("New set : {:?}", s1);
+
+    // It's worth noting that the performance of iterators is often as good if not better than the performance of more
+    // "typical" constructs
 }
 
 #[allow(dead_code)]
