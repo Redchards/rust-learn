@@ -93,7 +93,7 @@ fn main() {
         data: String::from("I will be destroyed!"),
     };
 
-    let d = CustomSmartPointer {
+    let _d = CustomSmartPointer {
         data: String::from("I will be destroyed too!"),
     };
 
@@ -206,6 +206,7 @@ pub enum List2<T> {
     Nil,
 }
 
+#[allow(dead_code)]
 impl<T: ToString> List2<T> {
     fn to_string(&self) -> String {
         let mut s = String::new();
