@@ -1,6 +1,8 @@
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 fn main() {
     // Now onto threads
@@ -72,5 +74,143 @@ fn main() {
     //    });
     // ...
 
+    // NOTE : the durations have been reduced to keep on writing examples without having to wait, but it can be increased
+    // to witness the concurrency.
     // It makes sense, as the other thread could change the value and produce inaccurate results or even drop the value
+
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("Hello"),
+            String::from("from"),
+            String::from("the"),
+            String::from("spawned"),
+            String::from("thread"),
+        ];
+
+        for val in vals {
+            tx.send(val).unwrap();
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for r in rx {
+        println!("{}", r);
+    }
+
+    // We can also clone transmitters. Below is an example with transmitters :
+    let (tx1, rx) = mpsc::channel();
+    let tx2 = tx1.clone();
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("Hello"),
+            String::from("from"),
+            String::from("the"),
+            String::from("spawned"),
+            String::from("thread"),
+        ];
+
+        for val in vals {
+            tx1.send(val).unwrap();
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("More"),
+            String::from("messages"),
+            String::from("from"),
+            String::from("you"),
+        ];
+
+        for val in vals {
+            tx2.send(val).unwrap();
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for r in rx {
+        println!("{}", r);
+    }
+
+    // In won't repeat here the little blurb about mutexes that is present in the Rust book, but let's see how the type system
+    // helps us with that
+
+    let m = Mutex::new(5);
+
+    {
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    }
+
+    println!("num = {:?}", m);
+
+    // Let's try to share the mutex between multiple threads. The following wouldn't work :
+    // let counter = Mutex::new(0);
+    // let mut handles = vec![];
+    //
+    // for _ in 1..10 {
+    //     let handle = thread::spawn(move || {
+    //         let mut num = counter.lock().unwrap();
+    //         *num += 1;
+    //     });
+
+    //     handles.push(handle);
+    // }
+
+    // for handle in handles {
+    //     handle.join().unwrap();
+    // }
+
+    // This is because we're moving the mutex in the first closure. Fortunately, we have Rc<T>, right? Let's see :
+    // let counter = Rc::new(Mutex::new(0));
+    // let mut handles = vec![];
+
+    // for _ in 1..10 {       
+    //     let counter = Rc::clone(&counter);
+    //     let handle = thread::spawn(move || {
+    //         let mut num = counter.lock().unwrap();
+    //         *num +=1;
+    //     });
+
+    //     handles.push(handle);
+    // }
+
+    // for handle in handles {
+    //     handle.join().unwrap();
+    // }
+
+    // Here we get : `Rc<Mutex<i32>>` cannot be sent between threads safely. Pretty explicit
+    // Rc<T> is indeed not safe to send between threads, it doesn't implement the trait "send". Fortunately, with a tiny
+    // change we can get a thread safe Rc<T>, using Arc<T>
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 1..10 {
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+            *num +=1;
+        });
+
+        handles.push(handle);
+    }
+
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    println!("Final value : {}", counter.lock().unwrap());
+
+    // Now let's quickly talk about relevant traits, Sync and Send
+    // Send indicates that the ownership of the value can be transferred between traits. Most types are Send, except for Rc<T>
+    // and a few others.
+    // Almost all primitives types, excluding pointers, are Send, and objects composed of primitive types or other objects that
+    // are Send are automatically Send in turn.
+    // A type T is sync if its reference can be sent to another thread, meaning that &T is Send.
+    
 }
