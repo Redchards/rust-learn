@@ -2,7 +2,6 @@
 // us to alleviate that a little)
 // Let's see how we can get dynamic type dispatch in the following examples
 
-pub mod gui {
 // Let's say that we want to make a gui library with extensible drawable components. In pure OO, we would most likely
 // define an interface IComponent having a method draw() and then have the other components (Button, Image, SelectBox, ...)
 // implement the method. In rust we can't do that because we don't have inheritance strictly speaking, but we can use
@@ -76,5 +75,3 @@ impl Draw for SelectBox {
 // - There are no generic type parameters
 // As trait objects are implemented through type erasure, the Self type (the type of the concrete class)
 // is forgotten alongside the generic type parameters. The clone trait is not object-safe for instance.
-
-}

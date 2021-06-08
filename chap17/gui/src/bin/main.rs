@@ -1,4 +1,4 @@
-use chap17::gui::{Screen, Button, SelectBox};
+use gui::{Screen, Button, SelectBox};
 
 fn main() {
     let screen = Screen {
