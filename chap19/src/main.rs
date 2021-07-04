@@ -1,5 +1,24 @@
 use std::slice;
 use std::ops::Add;
+use std::fmt;
+use hello_macro::HelloMacro;
+use hello_macro_derive::HelloMacro;
+
+type Thunk = Box<dyn Fn() + Send + 'static>;
+
+#[macro_export]
+macro_rules! myvec {
+    ( $( $x:expr),* ) => {
+        {
+            let mut tmp_vec = Vec::new();
+            $(
+                tmp_vec.push($x);
+            )*
+
+            tmp_vec
+        }
+    };
+}
 
 fn main() {
     // Unsafe rust gives us the following 5 superpowers :
@@ -109,6 +128,100 @@ fn main() {
     dog.bark();
 
     // The two last ones are strictly equivalent
+    // But what's up if you have class methods?
+    println!("My baby doggo is called {}", Doggo::baby_name());
+    
+    // The following line wouldn't work though :        
+    // println!("A baby dog is called a {}", Animal::baby_name());
+    // It must be fully qualified
+    println!("A baby dog is called a {}", <Doggo as Animal>::baby_name());
+
+    // Example of display using the newtype pattern
+    let w = WrapperVec(vec![String::from("hello"), String::from("world")]);
+    println!("w = {}", w);
+
+    // The newtype pattern has one downside though : we don't have the methods of the wrapped type
+    // If we wanted to replicate the same functionalities, we would have to implement all the methods ourselves
+    // or simply implement the Deref trait
+    // Type aliases are different from newtypes (like Millimeters and Meters), they're simply a new name for a 
+    // type, but do not declare a new type
+
+    type Kilometers = i32;
+
+    let x: i32 = 5;
+    let y: Kilometers = 5;
+
+    println!("x + y = {}", x + y);
+
+    // It can be useful to remove long type names
+    let f: Thunk = Box::new(|| println!("hi!"));
+    takes_long_type(f);
+    returns_long_type()();
+
+    // There's also the ! return type that means never returns. It's useful for expressions like continue or break
+    // as well as macros such as panic!
+    // For instance, we can't write the following code :
+    // let toto = Ok(5);
+    // let guess = match toto {
+    //     Ok(_) => 5,
+    //     Err(_) => "hello",
+    // }
+    // Error : match arms have incompatible types
+
+    // But as panic! has the ! never return type, we know that it will NEVER return, meaning that we don't need to
+    // assign a value, and we can write the following :
+    let toto: Result<i32, ()> = Ok(5);
+    let _guess = match toto {
+        Ok(_) => 5,
+        Err(_) => panic!("NOOOOO!"),
+    };
+
+    // Dynamically Size Types (DST) or unsized types are types which size can only be known at runtime. One example
+    // of such a type is the str type, not the &str type, the str type. For instance, the following code doesn't work
+    // let s1: str = "Hello there!";
+    // "doesn't have a size known at compile-time"
+    // In fact, implicitely, every generic type implements the trait Sized
+    // fn generic<T>(t: T) {
+    // }
+    // Is in fact equivalent to
+    // fn generic<T: Sized>(t: T) {
+    // }
+
+    // However, if we want to say that the type may not be sized, we can use the ?Sized trait
+    // fn generic<T: ?Sized>(t: T) {
+    // }
+    // This syntax only exists for the Sized trait
+
+    // We've seen how we can use closures (lambdas), but we can also use function pointers :
+    let answer = do_twice(add_one, 10);
+    println!("The answer to everything is {}", answer);
+
+    // fn is a type instead of a trait and implements all closure traits : FnOnce, FnMut and Fn
+
+    let numbers = vec![1, 2, 3];
+    let strnum : Vec<String> = numbers.iter().map(|i| i.to_string()).collect();
+    println!("strnum = {:?}", strnum);
+
+    let numbers = vec![1, 2, 3];
+    let strnum : Vec<String> = numbers.iter().map(ToString::to_string).collect();
+    println!("strnum = {:?}", strnum);
+
+    // Tuple struct enum variants use the () syntax for initialization and are actually implemented
+    // as functions returning an instance that is constructed from their arguments, meaning that we
+    // can actually use them this way :
+    let list_of_statuses: Vec<Status> = (0u32..20).map(Status::Value).collect();
+    println!("All the statuses : {:?}", list_of_statuses);
+
+    let returned_closure = returns_closure();
+    println!("returned_closure(11) = {}", returned_closure(11));
+
+    // This is a declarative macro
+    let x = myvec![1, 2, 3];
+    println!("I made a macro! {:?}", x);
+
+    // Procedural macros are pretty complex and make my brain hurt in terms of implementation. I suggest we stay
+    // away from writing them in the foreseeable future
+    Pancake::hello_macro();
 }
 
 unsafe fn dangerous() {}
@@ -201,4 +314,97 @@ impl Doggo {
     fn bark(&self) {
         println!("*bark bark*");
     }
+
+    fn baby_name() -> String {
+        String::from("Spot")
+    }
 }
+
+trait Animal {
+    fn baby_name() -> String;
+}
+
+impl Animal for Doggo {
+    fn baby_name() -> String {
+        String::from("puppy")
+    }
+}
+
+// Here we write a trait, a supertrait, that requires another trait, in our case the display trait
+trait OutlinePrint: fmt::Display {
+    fn outline_print(&self) {
+        let output = self.to_string();
+        let len = output.len();
+        println!("{}", "*".repeat(len + 4));
+        println!("*{}*", " ".repeat(len + 2));
+        println!("* {} *", output);
+        println!("*{}*", " ".repeat(len + 2));
+        println!("{}", "*".repeat(len + 4));
+    }
+}
+
+// We can't do the following as Point doesn't implement fmt::Display
+// impl OutlinePrint for Point {}
+
+struct DisplayPoint {
+    x: i32,
+    y: i32,
+}
+
+impl fmt::Display for DisplayPoint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl OutlinePrint for DisplayPoint {}
+
+// Remember that we can only implement a trait if either the trait or the type are local to our crate
+// We can get around this rule using the newtype pattern
+// Let's implement Display on Vec<T>
+
+struct WrapperVec(Vec<String>);
+
+impl fmt::Display for WrapperVec {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "))
+    }
+}
+
+fn takes_long_type(f: Thunk) {
+    f();
+}
+
+fn returns_long_type() -> Thunk {
+    Box::new(|| println!("bye!"))
+}
+
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+fn do_twice(f: fn(i32) -> i32, arg: i32) -> i32 {
+    f(arg) + f(arg)
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+enum Status {
+    Value(u32),
+    Stop,
+}
+
+// Let's return a closure!
+// The following way won't work because Fn is unsized
+// fn returns_closure() -> Fn(i32) -> i32 {
+// }
+// Using dyn won't work either because we need to Box the type
+// fn returns_closure() -> dyn Fn(i32) -> i32 {
+// }
+// We can write it this way
+fn returns_closure() -> Box<dyn Fn(i32) -> i32> {
+    Box::new(|x| x + 1)
+}
+
+#[derive(HelloMacro)]
+struct Pancake;

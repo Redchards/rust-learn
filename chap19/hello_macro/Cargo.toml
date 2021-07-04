@@ -1,5 +1,5 @@
 [package]
-name = "chap19"
+name = "hello_macro"
 version = "0.1.0"
 authors = ["Redchards <urien.loic.cours@gmail.com>"]
 edition = "2018"
@@ -7,5 +7,3 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hello_macro = { path = "./hello_macro" }
-hello_macro_derive = { path = "./hello_macro_derive" }
