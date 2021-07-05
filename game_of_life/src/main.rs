@@ -27,8 +27,6 @@ impl Simulator {
         let y = coords.x();
         let x = coords.y();
 
-        println!("{}, {}", x, y);
-
         vec![
             board.get((x - 1) * 20, (y - 1) * 20).unwrap_or(false),
             board.get((x - 1) * 20, (y) * 20).unwrap_or(false),
@@ -182,7 +180,6 @@ fn main() -> Result<(), String> {
                     ..
                 } => break 'mainloop,
                 Event::MouseButtonDown { x, y, .. } => {
-                    println!("{}, {}", x, y);
                     board.invert(x, y);
                     draw_board(&mut canvas, &board)?
                 }
