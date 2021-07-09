@@ -11,7 +11,7 @@ use std::marker::Copy;
 use sdl2::Sdl;
 use sdl2::VideoSubsystem;
 use sdl2::video::{ Window, WindowContext };
-use sdl2::render::{ Canvas, Texture, TextureCreator };
+use sdl2::render::{ Canvas, Texture, TextureCreator, RendererInfo };
 use sdl2::pixels::PixelFormatEnum;
 
 use contracts::ensures;
@@ -130,6 +130,11 @@ impl Renderer
     {
         self.canvas.present();
     }
+
+    pub fn get_info(&self) -> RendererInfo
+    {
+        self.canvas.info()
+    }
 }
 
 }
@@ -155,7 +160,9 @@ fn main() -> Result<(), String>
     let mut renderer = Renderer::new(&sdl_context, config)?;
     let render_target_creator = RenderTargetCreator::new(&renderer);
 
-    let mut render_target = render_target_creator.create_screen_render_target(PixelFormatEnum::RGB24)?;
+    let mut render_target = render_target_creator.create_screen_render_target(PixelFormatEnum::ARGB8888)?;
+
+    println!("{:?}", renderer.get_info().texture_formats);
 
     render_target.with_lock(None, 
         |buffer: &mut [u8], pitch: usize| 
@@ -164,10 +171,11 @@ fn main() -> Result<(), String>
             {
                 for x in 0..300
                 {
-                    let offset = y * pitch + x * 3;
-                    buffer[offset] = x as u8;
-                    buffer[offset + 1] = y as u8;
-                    buffer[offset + 2] = 0;
+                    let offset = y * pitch + x * 4;
+                    buffer[offset + 1] = x as u8;
+                    buffer[offset + 2] = y as u8;
+                    buffer[offset + 3] = 0;
+                    buffer[offset] = 0;
                 }
             }
         }
