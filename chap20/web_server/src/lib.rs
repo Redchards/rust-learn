@@ -18,14 +18,21 @@ impl ToString for ThreadPoolCreationError
     }
 }
 
-pub struct ThreadPool
+type Job = Box<dyn FnOnce() + Send + 'static>;
+type SafeJobReceiver = Arc<Mutex<Receiver<Message>>>;
+
+enum Message
 {
-    threads: Vec<Worker>,
-    sender: Sender<Job>,
+    NewJob(Job),
+    Terminate,
 }
 
-type Job = Box<dyn FnOnce() + Send + 'static>;
-type SafeJobReceiver = Arc<Mutex<Receiver<Job>>>;
+pub struct ThreadPool
+{
+    workers: Vec<Worker>,
+    sender: Sender<Message>,
+}
+
 
 impl ThreadPool 
 {
@@ -38,19 +45,19 @@ impl ThreadPool
         {
             0 => Err(ThreadPoolCreationError::NullSize),
             _ => {
-                let mut threads = Vec::with_capacity(size);
+                let mut workers = Vec::with_capacity(size);
 
                 let (sender, receiver) = mpsc::channel();
                 let receiver: SafeJobReceiver = Arc::new(Mutex::new(receiver));
 
                 for id in 0..size
                 {
-                    threads.push(Worker::new(id, Arc::clone(&receiver)));
+                    workers.push(Worker::new(id, Arc::clone(&receiver)));
                 }
 
                 Ok(ThreadPool
                 { 
-                    threads: threads,
+                    workers: workers,
                     sender: sender,
                 })
             },
@@ -63,14 +70,34 @@ impl ThreadPool
     {
         let job = Box::new(f);
 
-        self.sender.send(job).unwrap();
+        self.sender.send(Message::NewJob(job)).unwrap();
+    }
+}
+
+impl Drop for ThreadPool
+{
+    fn drop(&mut self)
+    {
+        for _ in &mut self.workers
+        {
+            self.sender.send(Message::Terminate).unwrap();
+        }
+
+        for worker in &mut self.workers
+        {
+            println!("Shutting down worker {}", worker.id);
+            if let Some(thread_handle) = worker.handle.take()
+            {
+                thread_handle.join().unwrap();
+            }
+        }
     }
 }
 
 struct Worker
 {
     id: usize,
-    handle: JoinHandle<()>,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl Worker
@@ -80,17 +107,28 @@ impl Worker
         Worker
         {
             id: id,
-            handle: thread::spawn(move ||
+            handle: Some(thread::spawn(move ||
             {
                 loop
                 {
-                    let job = receiver.lock().unwrap().recv().unwrap();
+                    let message = receiver.lock().unwrap().recv().unwrap();
 
-                    println!("Worker {} got a job; executing...", id);
+                    match message
+                    {
+                        Message::NewJob(job) =>
+                        {
+                            println!("Worker {} got a job; executing...", id);
+                            job();
+                        },
+                        Message::Terminate =>
+                        {
+                            println!("Worker {} got a termination command; stopping...", id);
+                            break;
+                        },
+                    }
 
-                    job();
                 }
-            }),
+            })),
         }
     }
 }
