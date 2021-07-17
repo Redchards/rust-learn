@@ -33,21 +33,27 @@ fn main() -> Result<(), String>
             match evt
             {
                 Event::Quit { .. }
-                | Event::KeyDown {
+                | Event::KeyDown 
+                {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'mainloop,
+                Event::KeyDown
+                {
+                    keycode: Some(Keycode::R),
+                    ..
+                } => simulator.reset(),
                 _ => {}
             }
         }
 
         iter += 1;
 
+        simulator.step();
 
         if iter%1000 == 0
         {
             simulator.render()?;
-            simulator.step();
         }
     }
 
