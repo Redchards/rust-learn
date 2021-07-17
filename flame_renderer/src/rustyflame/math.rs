@@ -1,21 +1,14 @@
 use std::ops::{ Add, Sub, Mul };
-use std::cmp::{ PartialEq, Ordering };
-use std::iter::Zip;
+use std::cmp::{ PartialEq };
 
-pub fn zip<A, B>(t: (A, B)) 
--> Zip<<A as IntoIterator>::IntoIter, <B as IntoIterator>::IntoIter>
-where
-    B: IntoIterator,
-    A: IntoIterator, 
-{
-    t.0.into_iter().zip(t.1.into_iter())
-}
+use super::utils;
 
-#[derive(Debug)]
-struct Vec2D
+
+#[derive(Clone, Copy, Debug)]
+pub struct Vec2D
 {
-	x: f64,
-    y: f64
+	pub x: f64,
+    pub y: f64
 }
 
 impl Add for Vec2D
@@ -55,15 +48,15 @@ impl PartialEq for Vec2D
     }
 }
 
-#[derive(Debug)]
-struct AugmentedMat2x2
+#[derive(Clone, Copy, Debug)]
+pub struct AugmentedMat2x2
 {
     coeffs: [[f64; 3]; 2],
 }
 
 impl AugmentedMat2x2
 {
-    fn new(coeffs: [[f64; 3]; 2]) -> AugmentedMat2x2
+    pub fn new(coeffs: [[f64; 3]; 2]) -> AugmentedMat2x2
     {
         AugmentedMat2x2 { coeffs: coeffs }
     }
@@ -80,6 +73,41 @@ impl Mul<Vec2D> for AugmentedMat2x2
             x: self.coeffs[0][0] * other.x + self.coeffs[0][1] * other.y + self.coeffs[0][2],
             y: self.coeffs[1][0] * other.x + self.coeffs[1][1] * other.y + self.coeffs[1][2],
         }
+    }
+}
+
+impl Mul<f64> for AugmentedMat2x2
+{
+    type Output = AugmentedMat2x2;
+
+    fn mul(self, scalar: f64) -> Self::Output
+    {
+        Self
+        {
+            coeffs: 
+            [
+                [
+                    scalar * self.coeffs[0][0],
+                    scalar * self.coeffs[0][1],
+                    scalar * self.coeffs[0][2],
+                ],
+                [
+                    scalar * self.coeffs[1][0],
+                    scalar * self.coeffs[1][1],
+                    scalar * self.coeffs[1][2],
+                ],
+            ]
+        }
+    }
+}
+
+impl Mul<AugmentedMat2x2> for f64
+{
+    type Output = AugmentedMat2x2;
+
+    fn mul(self, mat: AugmentedMat2x2) -> Self::Output
+    {
+        mat * self
     }
 }
 
@@ -109,13 +137,23 @@ impl Add for AugmentedMat2x2
     }
 }
 
+impl Sub for AugmentedMat2x2
+{
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output
+    {
+        self + (other * -1.0)
+    }
+}
+
 impl PartialEq for AugmentedMat2x2
 {
     fn eq(&self, other: &Self) -> bool
     {
         let mut coeff_pairs = 
-            zip((&self.coeffs, &other.coeffs))
-            .flat_map(zip);
+            utils::zip((&self.coeffs, &other.coeffs))
+            .flat_map(utils::zip);
 
         coeff_pairs.all(|(c1, c2)| c1 == c2)
     }
@@ -191,5 +229,48 @@ mod tests
              [5., 9., 6.]]
         ));
 
+    }
+
+    #[test]
+    fn test_augmented_mat_mul_scalar()
+    {
+        let m1 = AugmentedMat2x2::new
+        (
+            [[1., 2., 3.],
+             [4., 5., 6.]]
+        );
+
+        assert_eq!(-1. * m1, AugmentedMat2x2::new
+        (
+            [[-1., -2., -3.],
+             [-4., -5., -6.]]
+        ));
+
+        assert_eq!(10. * m1, AugmentedMat2x2::new
+        (
+            [[10., 20., 30.],
+             [40., 50., 60.]]
+        ));
+    }
+
+    #[test]
+    fn test_augmented_mat_sub()
+    {
+        let m1 = AugmentedMat2x2::new
+        (
+            [[1., 2., 3.],
+             [4., 5., 6.]]
+        );
+        let m2 = AugmentedMat2x2::new
+        (
+            [[5., 7., 9.],
+             [1., 4., 0.]]
+        );
+
+        assert_eq!(m1 - m2, AugmentedMat2x2::new
+        (
+            [[-4., -5., -6.],
+             [3., 1., 6.]]
+        ));
     }
 }
