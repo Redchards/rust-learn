@@ -1,6 +1,10 @@
 use std::ops::{ Add, Sub, Mul };
 use std::cmp::{ PartialEq };
 
+use rand;
+use rand::Rng;
+use rand_distr::{ Normal, Distribution };
+
 use super::utils;
 
 
@@ -59,6 +63,29 @@ impl AugmentedMat2x2
     pub fn new(coeffs: [[f64; 3]; 2]) -> AugmentedMat2x2
     {
         AugmentedMat2x2 { coeffs: coeffs }
+    }
+
+    pub fn rand(min: f64, max: f64) -> AugmentedMat2x2
+    {
+        let mut rnd = rand::thread_rng();
+
+        AugmentedMat2x2::new
+        (
+            [[rnd.gen_range(min..max), rnd.gen_range(min..max), rnd.gen_range(min..max)],
+             [rnd.gen_range(min..max), rnd.gen_range(min..max), rnd.gen_range(min..max)]] 
+        )
+    }
+
+    pub fn rand_std() -> AugmentedMat2x2
+    {
+        let mut rnd = rand::thread_rng();
+        let distrib = Normal::new(0.0, 0.5).unwrap();
+
+        AugmentedMat2x2::new
+        (
+            [[rnd.sample(distrib), rnd.sample(distrib), rnd.sample(distrib)],
+             [rnd.sample(distrib), rnd.sample(distrib), rnd.sample(distrib)]]
+        )
     }
 }
 

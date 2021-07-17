@@ -4,7 +4,7 @@ extern crate contracts;
 mod rustyflame;
 
 use rustyflame::render::{ Renderer, RenderConfig, Dimensions };
-use rustyflame::simulator::{ Simulator };
+use rustyflame::simulator::{ Simulator, SuperSamplingFactor };
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -17,11 +17,13 @@ fn main() -> Result<(), String>
     let config = RenderConfig 
     {
         window_title: String::from("Flame renderer"),
-        window_dimensions: Dimensions { width: 800, height: 600 },
+        window_dimensions: Dimensions { width: 1200, height: 960 },
+        //window_dimensions: Dimensions { width: 400, height: 400 },
     };
 
     let renderer = Renderer::new(&sdl_context, config)?;
-    let mut simulator = Simulator::new(renderer, 50)?;
+    let mut simulator = Simulator::new(renderer, 50, SuperSamplingFactor::None)?;
+
     let mut evt_pump = sdl_context.event_pump()?;
 
     let mut iter = 0usize;
@@ -51,7 +53,7 @@ fn main() -> Result<(), String>
 
         simulator.step();
 
-        if iter%1000 == 0
+        if iter % 10000 == 0
         {
             simulator.render()?;
         }

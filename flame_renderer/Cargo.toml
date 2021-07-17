@@ -10,3 +10,4 @@ edition = "2018"
 sdl2 = { version = "0.34.2", features = ["bundled", "static-link"] }
 contracts = "0.6.0"
 rand = "0.8.4"
+rand_distr = "0.4.1"
